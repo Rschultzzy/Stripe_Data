@@ -1,0 +1,206 @@
+---
+title: "Stripe_Data"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r cars}
+library(readxl)
+# upload Payment Excel file as a DF
+dstakehome_payments <- read_excel("Downloads/dstakehome_payments.xlsx")
+head(dstakehome_payments)
+```
+
+```{r}
+# upload Merchants Excel file as a DF
+dstakehome_merchants <-read_excel("Downloads/dstakehome_merchants.xlsx")
+head(dstakehome_merchants)
+```
+```{r}
+library(plyr)
+library(dplyr)
+#Join Merchants DF + Payments DF by Merchant unique identifier
+Stripe_Data <- full_join(dstakehome_merchants, dstakehome_payments, by = "merchant")
+head(Stripe_Data)
+```
+```{r pressure, echo=FALSE}
+# Count number of distinct merchants
+distinct_count <- length(unique(dstakehome_payments$merchant))
+
+# Print the result
+print(distinct_count)
+```
+
+```{r}
+# Count number of business sizes 
+distinct_counts <- Stripe_Data %>%
+  group_by(business_size) %>%
+  summarise(distinct_count = n_distinct(merchant))
+
+# Print the result
+print(distinct_counts)
+```
+```{r}
+# Count number of distinct merchants
+distinct_count <- length(unique(Stripe_Data$country))
+
+# Print the result
+print(distinct_count)
+```
+```{r}
+# Count number of unique industry types
+distinct_count <- length(unique(Stripe_Data$industry))
+
+# Print the result
+print(distinct_count)
+```
+
+```{r}
+# Count number of unique businesses in each country
+distinct_counts <- Stripe_Data %>%
+  group_by(country) %>%
+  summarise(distinct_count = n_distinct(merchant))
+
+# Print the result
+print(distinct_counts)
+```
+
+```{r}
+#Count number of industry companies 
+distinct_counts <- Stripe_Data %>%
+  group_by(industry) %>%
+  summarise(distinct_count = n_distinct(country))
+
+# Print the result
+print(distinct_counts)
+
+#Would consider removing the 0.0 industry or clarifying if that is a specific industry. 
+```
+
+```{r}
+#Convert volume totals from cents into USD ($)
+Stripe_Data$SubcriptionDollars <- Stripe_Data$subscription_volume/ 100
+Stripe_Data$CheckoutDollars <- Stripe_Data$checkout_volume/ 100
+Stripe_Data$PaymentDollars <- Stripe_Data$payment_link_volume/ 100
+Stripe_Data$TotalDollars <- Stripe_Data$total_volume/ 100
+```
+
+```{r}
+# Summarize the Total Volume column by business size
+summary_result <- Stripe_Data %>%
+  group_by(business_size) %>%
+  summarise(
+    Total = sum(TotalDollars),
+    Mean = mean(TotalDollars),
+    Median = median(TotalDollars),
+    Min = min(TotalDollars),
+    Max = max(TotalDollars)
+  )
+
+# View the summary result
+print(summary_result)
+```
+```{r}
+# Summarize Total volume by industry
+summary_result <- Stripe_Data %>%
+  group_by(industry) %>%
+  summarise(
+    Total = sum(TotalDollars),
+    Median = median(TotalDollars),
+    Min = min(TotalDollars),
+    Max = max(TotalDollars)
+  )
+
+# View the summary result
+print(summary_result)
+```
+
+```{r}
+# Summarize the Subscription volume by industry 
+summary_result <- Stripe_Data %>%
+  group_by(industry) %>%
+  summarise(
+    Total = sum(SubcriptionDollars),
+    Mean = mean(SubcriptionDollars),
+    Median = median(SubcriptionDollars),
+    Min = min(SubcriptionDollars),
+    Max = max(SubcriptionDollars)
+  )
+
+summary_df <-arrange(summary_result, desc(Total))
+
+# View the summary result
+print(summary_df)
+```
+```{r}
+# Summarize subscription volume by business size
+summary_result <- Stripe_Data %>%
+  group_by(business_size) %>%
+  summarise(
+    Total = sum(SubcriptionDollars),
+    Mean = mean(SubcriptionDollars),
+    Median = median(SubcriptionDollars),
+    Min = min(SubcriptionDollars),
+    Max = max(SubcriptionDollars)
+  )
+
+summary_df <-arrange(summary_result, desc(Total))
+
+# View the summary result
+print(summary_df)
+```
+
+```{r}
+# Summarize Subscription volume by industry and size
+summary_result <- Stripe_Data %>%
+  group_by(industry,business_size) %>%
+  summarise(
+    Total = sum(SubcriptionDollars),
+    Mean = mean(SubcriptionDollars),
+    Median = median(SubcriptionDollars),
+    Min = min(SubcriptionDollars),
+    Max = max(SubcriptionDollars)
+  )
+
+summary_df <-arrange(summary_result, desc(industry))
+
+# View the summary result
+print(summary_df)
+```
+```{r}
+library()
+#Example Code of what a lasso Model with Subscription as our target outcome. 
+
+#Create a new variable "Subscription_enabled" if a merchant has a subscription product with Stripe. (Could use i.e., 1 if Subscription Volume >0, 0 if Subscription volume = 0)
+
+# Separate predictors and outcome variable
+#X <- as.matrix(Stripe_Data[, c("country", "business_size", "industry")])
+#y <- Stripe_Data$Subscription_Enabled
+
+# Fit Lasso regression model
+#lasso_model <- glmnet(X, y, alpha = 1, family = "binomial")
+
+# Plot the coefficient path
+#plot(lasso_model, xvar = "lambda", label = TRUE)
+
+# Select lambda with cross-validation
+#cv_fit <- cv.glmnet(X, y, alpha = 1, family = "binomial")
+#best_lambda <- cv_fit$lambda.min
+#lasso_model_best <- glmnet(X, y, alpha = 1, family = "binomial", lambda = best_lambda)
+
+# Summary of the best model
+#coef(lasso_model_best)
+
+# Predictions using the best model
+#predictions <- predict(lasso_model_best, newx = X, type = "response")
+
+#Further work could look at the correlation (using a chi-equare test) between business size and industry, or business size and country location.
+
+#If we dig deeper and find that some of our predictors are correlated - I would consider using a ridge method over a lasso method. 
+```
+
+
+
+
